@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.so
+
+.DS_Store
+
+.venv/
+venv/
+env/
+
+outputs/
+logs/
+pop_ckpt.pkl
+
+.env
+.env.*

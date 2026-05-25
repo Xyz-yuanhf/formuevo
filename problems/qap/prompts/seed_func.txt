@@ -1,0 +1,31 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_facilities: int, flow_matrix: np.ndarray, distance_matrix: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the Quadratic Assignment Problem (QAP) using a Gurobi solver.
+    """
+    n = num_facilities
+    model = gp.Model("qap_naive_nonlinear", env=env)
+
+    # Variables: x[i, k] = 1 if facility i is at location k
+    x = model.addVars(n, n, vtype=GRB.BINARY, name="x")
+
+    # Objective: Minimize sum(f_ij * d_kl * x_ik * x_jl)
+    # Notice: This is natively NON-LINEAR (Quadratic product of binaries).
+    # We directly feed it to Gurobi and let the solver/LLM figure out the rest.
+    obj = gp.quicksum(flow_matrix[i, j] * distance_matrix[k, l] * x[i, k] * x[j, l]
+                      for i in range(n) for j in range(n)
+                      for k in range(n) for l in range(n)
+                      if i != j and k != l) # Avoid diagonal self-assignments
+    
+    model.setObjective(obj, GRB.MINIMIZE)
+
+    # Constraints: 1-to-1 Mapping
+    for i in range(n):
+        model.addConstr(gp.quicksum(x[i, k] for k in range(n)) == 1, name=f"fac_{i}")
+    for k in range(n):
+        model.addConstr(gp.quicksum(x[i, k] for i in range(n)) == 1, name=f"loc_{k}")
+
+    return model

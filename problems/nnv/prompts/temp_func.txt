@@ -1,0 +1,36 @@
+def build_mip_model(
+    weights: list[np.ndarray],
+    biases: list[np.ndarray],
+    x0: np.ndarray,
+    true_label: int,
+    target_label: int,
+    env: gp.Env,
+):
+    """
+    Build an MIP model for finding the minimum L1 adversarial distortion of an MLP.
+
+    Parameters:
+        weights: list of np.ndarray
+            Weight matrices [W1, W2, ..., WL], where W_k has shape (n_out, n_in).
+            The last layer is assumed to have no ReLU (output layer).
+        biases: list of np.ndarray
+            Bias vectors [b1, b2, ..., bL], where b_k has shape (n_out,).
+        x0: np.ndarray
+            Original input sample, shape (n_in,), values in [0, 1].
+        true_label: int
+            True class label λ of the sample.
+        target_label: int
+            Target adversarial label μ (must differ from true_label).
+        env: gp.Env
+            Gurobi environment object.
+
+    Note:
+        index used in the code: layer k, neuron j
+        Per-layer bigM values are computed via interval arithmetic over x' in [0,1]^n_in,
+        giving the tightest possible bound without additional assumptions on the perturbation.
+        All hidden neurons introduce a binary variable a[k][j] in {0,1}
+        to encode the ReLU: z[k][j] = max(z_hat[k][j], 0).
+
+    Returns:
+        A Gurobi model representing the MIP formulation. Call model.optimize() to solve.
+    """

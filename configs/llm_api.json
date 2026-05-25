@@ -1,0 +1,18 @@
+{
+    "openai_api": "",
+    "google_api": "",
+    "deepseek_api": "",
+    "openrouter_api": "",
+    "gurobi_api": {
+        "WLSACCESSID": "YOUR_WLSACCESSID",
+        "WLSSECRET": "YOUR_WLSSECRET",
+        "LICENSEID": 0
+    },
+    "_comments": {
+        "openai_api": "Leave empty to use OPENAI_API_KEY from the environment.",
+        "google_api": "Leave empty to use GOOGLE_API_KEY from the environment.",
+        "deepseek_api": "Leave empty to use DEEPSEEK_API_KEY from the environment.",
+        "openrouter_api": "Leave empty to use OPENROUTER_API_KEY from the environment.",
+        "gurobi_api": "Replace with your Gurobi WLS credentials before running evaluations."
+    }
+}

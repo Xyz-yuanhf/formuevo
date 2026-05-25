@@ -1,0 +1,68 @@
+import math
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(
+    num_items: int, 
+    item_weights: np.ndarray, 
+    bin_capacity: float, 
+    env: gp.Env
+):
+    """
+    Build an MIP model for the 1D Bin Packing Problem (BPP) using a Gurobi solver.
+    
+    Parameters:
+        num_items: int
+            Total number of items (N).
+        item_weights: np.ndarray
+            A 1D array of shape (N,) where item_weights[i] represents the weight of item i.
+        bin_capacity: float
+            The constant maximum weight capacity (W) of each bin.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        index used in the code: item i, bin j (0-based indexing).
+        We assume a worst-case scenario where each item might require its own bin, 
+        so the maximum number of available bins (M) is set to num_items.
+        
+    Returns:
+        gp.Model
+            A Gurobi model representing the baseline MIP formulation of the BPP instance.
+    """
+    N = num_items
+    M = num_items  # Upper bound on the number of bins needed
+    W = bin_capacity
+
+    # Define the Gurobi model setup
+    model = gp.Model("bin_packing_problem", env=env)
+
+    # Variables
+    # y[j]: 1 if bin j is actively utilized, 0 otherwise
+    y = model.addVars(M, vtype=GRB.BINARY, name="y")
+    
+    # x[i, j]: 1 if item i is placed into bin j, 0 otherwise
+    x = model.addVars(N, M, vtype=GRB.BINARY, name="x")
+
+    # Objective: Minimize the total number of utilized bins
+    obj = gp.quicksum(y[j] for j in range(M))
+    model.setObjective(obj, GRB.MINIMIZE)
+
+    # Constraints
+    # 1. Assignment constraint: Every item i must be placed in exactly one bin j
+    for i in range(N):
+        model.addConstr(
+            gp.quicksum(x[i, j] for j in range(M)) == 1, 
+            name=f"assign_item_{i}"
+        )
+
+    # 2. Capacity constraint: The sum of weights in bin j cannot exceed W
+    # Also ensures item i cannot be placed in bin j if bin j is not used (y[j] == 0)
+    for j in range(M):
+        model.addConstr(
+            gp.quicksum(item_weights[i] * x[i, j] for i in range(N)) <= W * y[j],
+            name=f"capacity_bin_{j}"
+        )
+
+    return model

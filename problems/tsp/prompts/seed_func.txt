@@ -1,0 +1,74 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_cities: int, distance_matrix: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the Traveling Salesperson Problem (TSP) 
+    using a Gurobi solver. This baseline uses the Miller-Tucker-Zemlin (MTZ) formulation.
+    
+    Parameters:
+        num_cities: int
+            Total number of cities (N).
+        distance_matrix: np.ndarray
+            A 2D array of shape (N, N).
+            distance_matrix[i, j] represents the travel distance from city i to city j.
+            The diagonal elements (i == j) are usually 0 and should not be traversed.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        index used in the code: city i, city j (0-based indexing)
+        City 0 is arbitrarily chosen as the depot/starting node.
+        
+    Returns:
+        gp.Model
+            A Gurobi model representing the MIP formulation of the given TSP instance.
+    """
+    N = num_cities
+
+    # Gurobi model
+    model = gp.Model("traveling_salesman_problem", env=env)
+
+    # Variables
+    # x[i, j]: 1 if the tour travels directly from city i to city j, 0 otherwise
+    x = model.addVars(N, N, vtype=GRB.BINARY, name="x")
+    
+    # u[i]: auxiliary variable for MTZ subtour elimination, representing the visit sequence order
+    # Note: u[0] is typically fixed or ignored; we define u for i >= 1
+    u = model.addVars(N, lb=1.0, ub=N-1, vtype=GRB.CONTINUOUS, name="u")
+
+    # Objective: Minimize total travel distance
+    obj = gp.quicksum(distance_matrix[i, j] * x[i, j] for i in range(N) for j in range(N) if i != j)
+    model.setObjective(obj, GRB.MINIMIZE)
+
+    # Constraints
+    # 1. Leave each city exactly once
+    for i in range(N):
+        model.addConstr(
+            gp.quicksum(x[i, j] for j in range(N) if i != j) == 1, 
+            name=f"leave_{i}"
+        )
+
+    # 2. Enter each city exactly once
+    for j in range(N):
+        model.addConstr(
+            gp.quicksum(x[i, j] for i in range(N) if i != j) == 1, 
+            name=f"enter_{j}"
+        )
+
+    # 3. MTZ Subtour Elimination Constraints
+    # Prevents subtours among nodes {1, 2, ..., N-1}
+    for i in range(1, N):
+        for j in range(1, N):
+            if i != j:
+                model.addConstr(
+                    u[i] - u[j] + N * x[i, j] <= N - 1,
+                    name=f"mtz_{i}_{j}"
+                )
+
+    # Prevent self-loops explicitly (optional but good practice)
+    for i in range(N):
+        model.addConstr(x[i, i] == 0, name=f"no_self_loop_{i}")
+
+    return model

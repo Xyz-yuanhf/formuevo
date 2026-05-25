@@ -1,0 +1,23 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(N: int, env: gp.Env):
+    """
+    Build an MIP model for the IMO 2025 Problem 6 benchmark and solve using a Gurobi solver.
+
+    Parameters:
+        N: int
+            The size of the N x N grid.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        Indices used in the code follow 0-based indexing:
+        - row i in {0, ..., N-1}
+        - column j in {0, ..., N-1}
+        - interval (a, b) where 0 <= a <= b <= N-1
+
+    Returns:
+        A Gurobi model representing the MIP formulation of the given IMO6 instance.
+    """

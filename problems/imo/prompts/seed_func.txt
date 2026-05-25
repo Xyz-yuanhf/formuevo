@@ -1,0 +1,81 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(N: int, env: gp.Env):
+    """
+    Build an MIP model for the IMO 2025 Problem 6 benchmark and solve using a Gurobi solver.
+
+    Parameters:
+        N: int
+            The size of the N x N grid.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        Indices used in the code follow 0-based indexing:
+        - row i in {0, ..., N-1}
+        - column j in {0, ..., N-1}
+        - interval (a, b) where 0 <= a <= b <= N-1
+
+    Returns:
+        A Gurobi model representing the MIP formulation of the given IMO6 instance.
+    """
+
+    # Generate all possible contiguous column intervals (a, b) where a <= b
+    intervals = [(a, b) for a in range(N) for b in range(a, N)]
+
+    # Gurobi model
+    model = gp.Model("imo2025_p6", env=env)
+
+    # Variables
+    # h[i, j]: 1 if the unique hole in row i is at column j
+    h = model.addVars(N, N, vtype=GRB.BINARY, name="h")
+    
+    # x[i, a, b]: 1 if on row i the columns from a to b are covered by the same tile (strip is active)
+    x = model.addVars(N, intervals, vtype=GRB.BINARY, name="x")
+    
+    # s[i, a, b]: 1 if the vertical strip for interval (a, b) STARTS at row i
+    s = model.addVars(N, intervals, vtype=GRB.BINARY, name="s")
+    
+    # t[i, a, b]: 1 if the vertical strip for interval (a, b) ENDS at row i
+    t = model.addVars(N, intervals, vtype=GRB.BINARY, name="t")
+
+    # Objective: Minimize the total number of rectangles, which equals the sum of start flags
+    model.setObjective(gp.quicksum(s[i, a, b] for i in range(N) for (a, b) in intervals), GRB.MINIMIZE)
+
+    # Constraints
+    # 1. Exactly one hole per row
+    for i in range(N):
+        model.addConstr(gp.quicksum(h[i, j] for j in range(N)) == 1, name=f"one_hole_row_{i}")
+
+    # 2. Exactly one hole per column
+    for j in range(N):
+        model.addConstr(gp.quicksum(h[i, j] for i in range(N)) == 1, name=f"one_hole_col_{j}")
+
+    # 3. Each cell is covered at most once, either by a hole or by a stripe
+    for i in range(N):
+        for j in range(N):
+            # Find all intervals (a, b) that cover column j
+            covering_intervals = [(a, b) for (a, b) in intervals if a <= j <= b]
+            model.addConstr(
+                gp.quicksum(x[i, a, b] for (a, b) in covering_intervals) + h[i, j] == 1, 
+                name=f"cell_cover_{i}_{j}"
+            )
+
+    # 4. Vertical flow tracking for rectangles
+    for (a, b) in intervals:
+        # Top flow (row 0)
+        model.addConstr(x[0, a, b] - s[0, a, b] == 0, name=f"top_flow_{a}_{b}")
+        
+        # Mid flow (rows 1 to N-1)
+        for i in range(1, N):
+            model.addConstr(
+                x[i, a, b] - x[i-1, a, b] - s[i, a, b] + t[i-1, a, b] == 0, 
+                name=f"mid_flow_{i}_{a}_{b}"
+            )
+            
+        # Bottom flow (row N-1)
+        model.addConstr(x[N-1, a, b] - t[N-1, a, b] == 0, name=f"bottom_flow_{a}_{b}")
+
+    return model

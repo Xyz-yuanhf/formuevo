@@ -1,0 +1,27 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_jobs: int, num_machines: int, machine_assign: np.ndarray, process_time: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the job-shop scheduling problem and solve using a Gurobi solver.
+    Parameters:
+        num_jobs: int
+            Total number of jobs (J).
+        num_machines: int
+            Total number of machines (M).
+        machine_assign: np.ndarray
+            A 2D array of shape (J, M).
+            machine_assign[i, j] = k indicates that the j-th operation of job i must be processed on machine k.
+            Machine indices are assumed to follow 0-based indexing.
+        process_time: np.ndarray
+            A 2D array of shape (J, M).
+            process_time[i, j] = p specifies the processing time of the j-th operation of job i, where p > 0.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+    Note:
+        index used in the code: job i, operation j, machine k
+    Returns:
+        gp.Model
+            A Gurobi model representing the MIP formulation of the given JSSP instance.
+    """

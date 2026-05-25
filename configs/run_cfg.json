@@ -1,0 +1,24 @@
+{   
+    "problem": "tsp",
+    "provider": "openai",
+    "model": "gpt-5.4-mini",
+
+    "pop_size": 8,
+    "max_iter": 5,
+    "mut_rate": 0.3,
+    "mem_rate": 0.7,
+    "timeout": 1800,
+
+    "num_train": 100,
+    "num_val": 100,
+
+    "_comments": {
+        "pop_size": "number of individuals in the population",
+        "max_iter": "maximum number of iterations for the evolution",
+        "mut_rate": "mutation rate in each evolution step",
+        "mem_rate": "rate to use memory lib in each evolution step",
+        "timeout": "timeout for one code run",
+        "num_train": "number of training instances",
+        "num_val": "number of validation instances"
+    }
+}

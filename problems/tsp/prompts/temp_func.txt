@@ -1,0 +1,27 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_cities: int, distance_matrix: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the Traveling Salesperson Problem (TSP) 
+    using a Gurobi solver. This baseline uses the Miller-Tucker-Zemlin (MTZ) formulation.
+    
+    Parameters:
+        num_cities: int
+            Total number of cities (N).
+        distance_matrix: np.ndarray
+            A 2D array of shape (N, N).
+            distance_matrix[i, j] represents the travel distance from city i to city j.
+            The diagonal elements (i == j) are usually 0 and should not be traversed.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        index used in the code: city i, city j (0-based indexing)
+        City 0 is arbitrarily chosen as the depot/starting node.
+        
+    Returns:
+        gp.Model
+            A Gurobi model representing the MIP formulation of the given TSP instance.
+    """

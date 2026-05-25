@@ -1,0 +1,3 @@
+The Traveling Salesperson Problem (TSP) aims to determine the optimal closed-loop route (tour) to visit a set of $n$ distinct cities exactly once and return to the starting city. 
+The problem is defined on a complete graph where each pair of cities $(i, j)$ is associated with a deterministic travel distance (or cost) $c_{ij}$. The routing decision involves sequencing the visits to ensure that every city is entered exactly once and exited exactly once. Furthermore, a critical structural requirement is that the selected route must form a single continuous tour covering all $n$ cities; any disconnected, smaller loops (subtours) that do not include all cities are strictly prohibited. 
+The objective is to minimize the total travel distance of the complete tour.

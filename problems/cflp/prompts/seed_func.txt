@@ -1,0 +1,70 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_facilities: int, num_customers: int, fixed_costs: np.ndarray, capacities: np.ndarray, demands: np.ndarray, transport_costs: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the Capacitated Facility Location Problem (CFLP) using a Gurobi solver.
+    
+    Parameters:
+        num_facilities: int
+            Total number of candidate facilities (I).
+        num_customers: int
+            Total number of customers (J).
+        fixed_costs: np.ndarray
+            A 1D array of shape (I,). 
+            fixed_costs[i] represents the fixed cost to open facility i.
+        capacities: np.ndarray
+            A 1D array of shape (I,). 
+            capacities[i] specifies the maximum supply capacity of facility i if opened.
+        demands: np.ndarray
+            A 1D array of shape (J,). 
+            demands[j] specifies the required demand of customer j.
+        transport_costs: np.ndarray
+            A 2D array of shape (I, J).
+            transport_costs[i, j] represents the cost of shipping one unit of product from facility i to customer j.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+            
+    Note:
+        index used in the code: facility i, customer j
+        
+    Returns:
+        gp.Model
+            A Gurobi model representing the MIP formulation of the given CFLP instance.
+    """
+    
+    I = num_facilities
+    J = num_customers
+
+    # Gurobi model
+    model = gp.Model("capacitated_facility_location", env=env)
+
+    # Variables
+    # y[i]: 1 if facility i is opened, 0 otherwise
+    y = model.addVars(I, vtype=GRB.BINARY, name="y")
+    
+    # x[i, j]: amount of product shipped from facility i to customer j
+    x = model.addVars(I, J, lb=0.0, vtype=GRB.CONTINUOUS, name="x")
+
+    # Objective: Minimize fixed opening costs + variable transportation costs
+    obj = gp.quicksum(fixed_costs[i] * y[i] for i in range(I)) + \
+          gp.quicksum(transport_costs[i, j] * x[i, j] for i in range(I) for j in range(J))
+    model.setObjective(obj, GRB.MINIMIZE)
+
+    # Constraints
+    # 1. Demand satisfaction constraints: Each customer's demand must be fully met
+    for j in range(J):
+        model.addConstr(
+            gp.quicksum(x[i, j] for i in range(I)) == demands[j], 
+            name=f"demand_sat_{j}"
+        )
+
+    # 2. Capacity constraints: Total shipments from facility i cannot exceed its capacity.
+    for i in range(I):
+        model.addConstr(
+            gp.quicksum(x[i, j] for j in range(J)) <= capacities[i] * y[i], 
+            name=f"capacity_{i}"
+        )
+
+    return model

@@ -1,0 +1,99 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+
+def build_mip_model(
+    weights: list[np.ndarray],
+    biases: list[np.ndarray],
+    x0: np.ndarray,
+    true_label: int,
+    target_label: int,
+    env: gp.Env,
+):
+    """
+    Build an MIP model for finding the minimum L1 adversarial distortion of an MLP.
+
+    Parameters:
+        weights: list of np.ndarray
+            Weight matrices [W1, W2, ..., WL], where W_k has shape (n_out, n_in).
+            The last layer is assumed to have no ReLU (output layer).
+        biases: list of np.ndarray
+            Bias vectors [b1, b2, ..., bL], where b_k has shape (n_out,).
+        x0: np.ndarray
+            Original input sample, shape (n_in,), values in [0, 1].
+        true_label: int
+            True class label λ of the sample.
+        target_label: int
+            Target adversarial label μ (must differ from true_label).
+        env: gp.Env
+            Gurobi environment object.
+
+    Note:
+        index used in the code: layer k, neuron j
+        Per-layer bigM values are computed via interval arithmetic over x' in [0,1]^n_in,
+        giving the tightest possible bound without additional assumptions on the perturbation.
+        All hidden neurons introduce a binary variable a[k][j] in {0,1}
+        to encode the ReLU: z[k][j] = max(z_hat[k][j], 0).
+
+    Returns:
+        A Gurobi model representing the MIP formulation. Call model.optimize() to solve.
+    """
+    
+    assert true_label != target_label
+    L = len(weights)
+
+    # ── Per-layer bigM via interval arithmetic over x' in [0, 1]^n_in ──
+    l_cur, u_cur = np.zeros_like(x0), np.ones_like(x0)
+    bigM = []
+    for k in range(L):
+        W, b  = weights[k], biases[k]
+        W_pos, W_neg = np.maximum(W, 0), np.minimum(W, 0)
+        l_hat = W_pos @ l_cur + W_neg @ u_cur + b
+        u_hat = W_pos @ u_cur + W_neg @ l_cur + b
+        bigM.append(np.maximum(np.abs(l_hat), np.abs(u_hat)))  # per-neuron bound
+        l_cur = np.maximum(l_hat, 0.0)
+        u_cur = np.maximum(u_hat, 0.0)
+
+    # ── Gurobi model ──
+    model = gp.Model("adv_l1", env=env)
+    n_in  = x0.shape[0]
+
+    # Variables
+    x     = model.addVars(n_in, lb=0.0, ub=1.0,  vtype=GRB.CONTINUOUS, name="x")
+    d     = model.addVars(n_in, lb=0.0,          vtype=GRB.CONTINUOUS, name="d")
+    z_hat = [model.addVars(weights[k].shape[0], lb=(-bigM[k]).tolist(), ub=bigM[k].tolist(), vtype=GRB.CONTINUOUS, name=f"zh_{k}") for k in range(L)]
+    z     = [model.addVars(weights[k].shape[0], lb=0.0, ub=bigM[k].tolist(), vtype=GRB.CONTINUOUS, name=f"z_{k}") for k in range(L - 1)]
+    a     = [model.addVars(weights[k].shape[0], vtype=GRB.BINARY, name=f"a_{k}") for k in range(L - 1)]
+
+    # Objective: min Σ d[i]
+    model.setObjective(gp.quicksum(d[i] for i in range(n_in)), GRB.MINIMIZE)
+
+    # Constraints
+    # 1. L1 linearization: d[i] >= |x[i] - x0[i]|
+    for i in range(n_in):
+        model.addConstr(d[i] >= x[i] - x0[i], name=f"abs_pos_{i}")
+        model.addConstr(d[i] >= x0[i] - x[i], name=f"abs_neg_{i}")
+
+    # 2. Forward pass: linear transform z_hat[k] = W[k] @ z_prev + b[k]
+    for k in range(L):
+        W, b   = weights[k], biases[k]
+        z_prev = x if k == 0 else z[k - 1]
+        for j in range(W.shape[0]):
+            model.addConstr(
+                z_hat[k][j] == gp.quicksum(W[j, i] * z_prev[i] for i in range(W.shape[1])) + b[j],
+                name=f"linear_{k}_{j}",
+            )
+
+    # 3. ReLU constraints for hidden layers: z[k][j] = max(z_hat[k][j], 0)
+    for k in range(L - 1):
+        for j in range(weights[k].shape[0]):
+            M_kj = float(bigM[k][j])
+            model.addConstr(z[k][j] <= z_hat[k][j] + M_kj * a[k][j],       name=f"relu_ub1_{k}_{j}")
+            model.addConstr(z[k][j] >= z_hat[k][j],                         name=f"relu_lb_{k}_{j}")
+            model.addConstr(z[k][j] <= M_kj * (1 - a[k][j]),                name=f"relu_ub2_{k}_{j}")
+
+    # 4. Adversarial condition: output of target_label >= output of true_label
+    model.addConstr(z_hat[L - 1][target_label] >= z_hat[L - 1][true_label], name="adv_condition")
+
+    return model

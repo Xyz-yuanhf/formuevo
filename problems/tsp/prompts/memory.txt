@@ -1,0 +1,33 @@
+[MEMORY LIBRARY START]
+
+ID: 1
+- Condition: An MTZ-style routing formulation still exhibits a weak root relaxation and large integrality gap, especially when many fractional subtours survive despite the ordering layer.
+- Strategy: Replace or augment the global MTZ precedence system with a single-commodity flow backbone, introducing depot-originated flow conservation and arc-capacity couplings (f[i,j] \le (n-1)x[i,j]) to encode connectivity directly through flow propagation.
+- Effect: [+] The flow-based connectivity representation can substantially strengthen the LP relaxation and eliminate many fractional subtours already at the root, often reducing branch-and-bound nodes and improving overall runtime despite a moderate increase in variables and conservation constraints.
+
+ID: 2
+- Condition: A compact routing MIP already has root_gap ≈ 100% and only a tiny branch-and-bound tree, so branching is not the bottleneck.
+- Strategy: Replace aggregated connectivity with disaggregated per-destination or multi-commodity flow, using exact commodity conservation, tight arc-flow linking \(f[k,i,j] \le x[i,j]\), and pruning of impossible flow arcs.
+- Effect: [-] The model size can jump by an order of magnitude, and presolve only trims redundant rows/columns; node count may drop slightly, but root_bound often stays near 0 and runtime rises because the larger node LPs dominate.
+
+ID: 3
+- Condition: Fractional subtours are local and the model is sparse enough that presolve will not erase a modest cut pool.
+- Strategy: Keep the sparse arc/flow backbone and add a small static subtour/cutset pool built from distance-ranked or nearest-neighbor 2-, 3-, and 4-node subsets, especially depot-centered or connected-component candidates.
+- Effect: [+] Easy subtours are removed before branching, so node count and runtime can drop even when root_bound stays flat; the gain comes from pruning early disconnected cycles with only a modest increase in constraints and LP cost.
+
+ID: 4
+- Condition: A subtour pool is either broadened to exhaustive 3-5 node DFJ/SEC enumeration or is so sparse that it misses likely short cycles.
+- Strategy: Do not replace the compact pool with full O(n^3) enumeration, and do not rely only on 2-cycles or a few triangles when stronger coverage is needed.
+- Effect: [-] Dense enumeration adds rows and presolve work without improving root_bound, while under-selection leaves fractional subtours intact, so runtime gains are inconsistent or reversed.
+
+ID: 5
+- Condition: A flow-based routing model still has a flat root relaxation, but order information can help if injected sparsely rather than as a full grid.
+- Strategy: Use depot-anchored rank variables with lifted MTZ precedence constraints only on a small proximity-ranked subset of customer pairs, on top of the flow backbone.
+- Effect: [+] The lighter order layer can preserve branching guidance while avoiding LP bloat; node count and runtime can improve even when root_bound remains near 0 because the extra rows are limited.
+
+ID: 6
+- Condition: A compact assignment/flow routing model already has a tiny tree and root_gap ≈ 100%, but the added order layer is dense or full.
+- Strategy: Add a continuous MTZ-style rank layer or dense all-pairs lifted MTZ with big-M precedence couplings on top of the exact backbone.
+- Effect: [-] The extra order system inflates LP size and per-node work without tightening the relaxation, so runtime worsens sharply and node counts may even rise while root_bound stays at 0.
+
+[MEMORY LIBRARY END]

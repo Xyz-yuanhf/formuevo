@@ -1,0 +1,74 @@
+import numpy as np
+import gurobipy as gp
+from gurobipy import GRB
+
+def build_mip_model(num_jobs: int, num_machines: int, machine_assign: np.ndarray, process_time: np.ndarray, env: gp.Env):
+    """
+    Build an MIP model for the Job-Shop Scheduling Problem (JSSP) and solve using a Gurobi solver.
+
+    Parameters:
+        num_jobs: int
+            Total number of jobs (J).
+        num_machines: int
+            Total number of machines (M).
+        machine_assign: np.ndarray
+            A 2D array of shape (J, M).
+            machine_assign[i, j] = k indicates that the j-th operation of job i must be processed on machine k.
+            Machine indices are assumed to follow 0-based indexing.
+        process_time: np.ndarray
+            A 2D array of shape (J, M).
+            process_time[i, j] = p specifies the processing time of the j-th operation of job i, where p > 0.
+        env: gp.Env
+            A Gurobi environment object to use for model creation.
+    Note:
+        index used in the code: job i, operation j, machine k
+    Returns:
+            A Gurobi model representing the MIP formulation of the given JSSP instance.
+    """
+
+
+    J = num_jobs
+    M = num_machines
+    BIG_M = int(np.sum(process_time))  # a safe large constant
+
+    # Gurobi model
+    model = gp.Model("job_shop_scheduling", env=env)
+
+    # Variables
+    C_max = model.addVar(lb=0.0, vtype=GRB.CONTINUOUS, name="C_max")  # makespan (objective) of the JSSP
+    x = model.addVars(J, M, lb=0.0, vtype=GRB.CONTINUOUS, name="x")  # x[i, k]: start time of job i on machine k
+    z = model.addVars(J, J, M, vtype=GRB.BINARY, name="z")  # z[i_1, i_2, k]: 1 if job i_1 precedes job i_2 on machine k
+
+    # Objective
+    model.setObjective(C_max, GRB.MINIMIZE)
+
+    # Constraints
+    # 1. job precedence constraints
+    for i in range(J):
+        for j in range(M - 1):
+            k_1 = machine_assign[i, j]
+            k_2 = machine_assign[i, j + 1]
+            model.addConstr(x[i, k_2] >= x[i, k_1] + process_time[i, j], name=f"job_prec_{i}_{j}")
+
+    # 2. machine disjunctive constraints
+    for i_1 in range(J):
+        for i_2 in range(i_1 + 1, J):  # i_2 > i_1
+            for k in range(M):
+                # identify the operations on machine k
+                j_1 = np.where(machine_assign[i_1, :] == k)[0][0]
+                j_2 = np.where(machine_assign[i_2, :] == k)[0][0]
+                # processing times on machine k
+                p_1 = process_time[i_1, j_1]
+                p_2 = process_time[i_2, j_2]
+                # if i_1 before i_2
+                model.addConstr(x[i_1, k] + p_1 <= x[i_2, k] + BIG_M * (1 - z[i_1, i_2, k]), name=f"mach_{k}_{i_1}_before_{i_2}")
+                # if i_2 before i_1
+                model.addConstr(x[i_2, k] + p_2 <= x[i_1, k] + BIG_M * z[i_1, i_2, k], name=f"mach_{k}_{i_2}_before_{i_1}")
+
+    # 3. makespan constraints
+    for i in range(J):
+        for j in range(M):
+            k = machine_assign[i, j]
+            model.addConstr(C_max >= x[i, k] + process_time[i, j], name=f"makespan_{i}_{j}")
+
+    return model
