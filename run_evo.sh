@@ -36,7 +36,6 @@
 #################################################
 
 # Purge the environment, load the modules we require.
-# Refer to https://violet.scis.dev/docs/Advanced%20settings/module for more information
 module purge
 module load Anaconda3/2024.06-1
 
