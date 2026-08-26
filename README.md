@@ -4,6 +4,12 @@ Our paper **[FormuEvo: LLM-Guided Evolution for Discovering Solver-Efficient Mix
 
 **FormuEvo** is an LLM-guided evolutionary framework for automated discovery of solver-efficient MIP formulations. It iteratively generates, evaluates, and selects candidate formulations guided by solver-informed diagnosis and structured memory toward better solver efficiency.
 
+<p align="center">
+  <a href="https://arxiv.org/abs/2608.23353v1">
+    <img src="assets/overview.png" alt="Overview of the FormuEvo framework" width="100%">
+  </a>
+</p>
+
 ## Features
 
 - Support LLMs: OpenAI, OpenRouter, Google Gemini, and DeepSeek.
