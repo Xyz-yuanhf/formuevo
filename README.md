@@ -1,6 +1,8 @@
 # FormuEvo
 
-FormuEvo is an LLM-guided evolutionary framework for automated discovery of solver-efficient MIP formulations. It iteratively generates, evaluates, and selects candidate formulations guided by solver-informed diagnosis and structured memory toward better solver efficiency.
+Our paper **[FormuEvo: LLM-Guided Evolution for Discovering Solver-Efficient Mixed-Integer Programming Formulations](https://arxiv.org/abs/2608.23353v1)** has been accepted to **EMNLP 2026**.
+
+**FormuEvo** is an LLM-guided evolutionary framework for automated discovery of solver-efficient MIP formulations. It iteratively generates, evaluates, and selects candidate formulations guided by solver-informed diagnosis and structured memory toward better solver efficiency.
 
 ## Features
 
