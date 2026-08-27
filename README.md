@@ -6,7 +6,7 @@ Our paper **[FormuEvo: LLM-Guided Evolution for Discovering Solver-Efficient Mix
 
 <p align="center">
   <a href="https://arxiv.org/abs/2608.23353v1">
-    <img src="assets/overview.png" alt="Overview of the FormuEvo framework" width="100%">
+    <img src="assets/overview.png" alt="Overview of the FormuEvo framework" width="65%">
   </a>
 </p>
 
