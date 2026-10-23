@@ -115,3 +115,16 @@ Each run creates a timestamped directory under `outputs/<problem>/` containing:
 - `evolution.log`
 - `final_code.txt`
 - `final_memory.txt`
+
+## Citation
+
+If you find FormuEvo useful for your research, please consider giving this repository a star and citing our paper:
+
+```bibtex
+@inproceedings{yuan2026formuevo,
+  title = {{FormuEvo}: {LLM}-Guided Evolution for Discovering Solver-Efficient Mixed-Integer Programming Formulations},
+  author = {Yuan, Haofeng and Peng, Jianing and Bi, Jieyi and Zhang, Ni and Song, Shiji and Cao, Zhiguang},
+  booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing},
+  year = {2026}
+}
+```
