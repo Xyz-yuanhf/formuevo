@@ -130,7 +130,7 @@ class LLMCaller:
             try:
                 client = genai.Client(api_key=self.google_api_key)
                 response = client.models.generate_content(
-                    model=self.model.split("/", 1)[1],
+                    model=self.model,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=temperature,
