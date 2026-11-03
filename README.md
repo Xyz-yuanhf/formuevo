@@ -125,6 +125,8 @@ If you find FormuEvo useful for your research, please consider giving this repos
   title = {{FormuEvo}: {LLM}-Guided Evolution for Discovering Solver-Efficient Mixed-Integer Programming Formulations},
   author = {Yuan, Haofeng and Peng, Jianing and Bi, Jieyi and Zhang, Ni and Song, Shiji and Cao, Zhiguang},
   booktitle = {Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing},
-  year = {2026}
+  year = {2026},
+  pages = {5109--5135},
+  doi = {10.18653/2026.emnlp-main.221}
 }
 ```
